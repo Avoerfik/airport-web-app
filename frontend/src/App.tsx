@@ -76,7 +76,7 @@ export default function App() {
     localStorage.clear();
     setToken(null);
     setRole(null);
-    setFullName(null);
+    setFullName(null); setSelectedFlightId('');
   };
 
   const loadAll = async () => {

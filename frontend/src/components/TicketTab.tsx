@@ -29,6 +29,11 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
   };
 
   useEffect(() => {
+    if (role !== 'passenger') {
+      setTicketForm({ passenger_id: '', flight_id: '', seat_class: '', seat_number: '', custom_price: '' });
+      setAvailableSeats([]);
+      return;
+    }
     if (selectedFlightId) {
       const fid = String(selectedFlightId);
       setTicketForm((prev) => ({ ...prev, flight_id: fid, seat_class: '', seat_number: '' }));
