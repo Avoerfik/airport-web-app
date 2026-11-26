@@ -1,3 +1,5 @@
+DROP PROCEDURE IF EXISTS sp_issue_ticket_PAG8(INT, INT, INT, VARCHAR, VARCHAR, NUMERIC);
+
 CREATE OR REPLACE PROCEDURE sp_create_flight_PAG8(
     p_flight_number VARCHAR,
     p_origin VARCHAR,
@@ -91,7 +93,6 @@ DECLARE
     v_actual_class TEXT;
     v_final_price NUMERIC(10, 2);
 BEGIN
-    -- Берём базовый тариф рейса из БД, если кассир/админ не передал ручную цену
     SELECT flight_base_price_PAG8 INTO v_base_price
     FROM flight_PAG8
     WHERE flight_id_PAG8 = p_flight_id;
@@ -100,7 +101,6 @@ BEGIN
         v_base_price := p_custom_base_price;
     END IF;
 
-    -- Определяем класс места строго по ряду салона (1 = Первый, 2-4 = Бизнес, 5+ = Эконом)
     v_actual_class := fn_py_get_seat_class_PAG8(p_seat_number);
 
     SELECT COALESCE(load_percent, 0) INTO v_load_pct
@@ -142,4 +142,3 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'Билет с ID % не найден', p_ticket_id; END IF;
 END;
 $$;
-
