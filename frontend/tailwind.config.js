@@ -9,12 +9,3 @@ export default {
   },
   plugins: [],
 }
-EOF
-
-cat << 'EOF' > postcss.config.js
-export default {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
