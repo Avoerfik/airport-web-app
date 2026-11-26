@@ -1,41 +1,39 @@
 from pydantic import BaseModel
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional
 
-class AircraftBase(BaseModel):
-    model: str
-    reg_number: str
-    capacity: int
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
-class AircraftResponse(AircraftBase):
-    id: int
-    class Config:
-        from_attributes = True
+class TokenResponse(BaseModel):
+    access_token: str
+    role: str
+    full_name: str
 
-class FlightBase(BaseModel):
+class FlightCreate(BaseModel):
     flight_number: str
     origin: str
     destination: str
     departure_time: datetime
     arrival_time: datetime
+    aircraft_reg_number: str
+
+class FlightStatusUpdate(BaseModel):
     status: str
-    aircraft_id: int
 
-class FlightResponse(FlightBase):
-    id: int
-    aircraft: AircraftResponse
-    class Config:
-        from_attributes = True
+class PassengerCreate(BaseModel):
+    surname: str
+    name: str
+    patronymic: Optional[str] = None
+    birthdate: date
+    passport: str
+    phone: Optional[str] = None
 
-class TicketBase(BaseModel):
-    flight_id: int
+class TicketIssueRequest(BaseModel):
     passenger_id: int
+    flight_id: int
     seat_number: str
     ticket_class: str
-    price: float
+    base_price: float
 
-class TicketResponse(TicketBase):
-    id: int
-    purchase_date: date
-    class Config:
-        from_attributes = True
