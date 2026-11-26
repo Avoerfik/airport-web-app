@@ -1,4 +1,3 @@
--- Представление 1: Публичное табло рейсов (для Пассажиров — скрыты внутренние ID и кассиры)
 CREATE OR REPLACE VIEW v_public_schedule_PAG8 AS
 SELECT 
     f.flight_id_PAG8 AS flight_id,
@@ -17,8 +16,8 @@ JOIN aircraft_PAG8 a ON a.aircraft_reg_number_PAG8 = f.aircraft_reg_number_PAG8
 LEFT JOIN ticket_PAG8 t ON t.flight_id_PAG8 = f.flight_id_PAG8
 GROUP BY f.flight_id_PAG8, a.aircraft_reg_number_PAG8;
 
--- Представление 2: Реестр проданных билетов (для Кассира и Администратора)
-CREATE OR REPLACE VIEW v_tickets_registry_PAG8 AS
+DROP VIEW IF EXISTS v_tickets_registry_PAG8;
+CREATE VIEW v_tickets_registry_PAG8 AS
 SELECT 
     t.ticket_id_PAG8 AS ticket_id,
     t.ticket_number_PAG8 AS ticket_number,
@@ -40,7 +39,6 @@ JOIN passenger_PAG8 p ON p.passenger_id_PAG8 = b.passenger_id_PAG8
 JOIN flight_PAG8 f ON f.flight_id_PAG8 = t.flight_id_PAG8
 JOIN editor_PAG8 e ON e.editor_id_PAG8 = t.editor_id_PAG8;
 
--- Представление 3: Справочник пассажиров и самолётов для форм
 CREATE OR REPLACE VIEW v_passengers_list_PAG8 AS
 SELECT passenger_id_PAG8 AS id,
        passenger_surname_PAG8 || ' ' || passenger_name_PAG8 || ' (' || passenger_passport_PAG8 || ')' AS label,
@@ -66,7 +64,6 @@ FROM audit_log_PAG8
 ORDER BY log_id_PAG8 DESC
 LIMIT 50;
 
--- Роли на уровне СУБД (Пункт 6 ТР)
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'role_passenger_pag8') THEN
@@ -79,4 +76,3 @@ END $$;
 
 GRANT SELECT ON v_public_schedule_PAG8 TO role_passenger_pag8;
 GRANT SELECT ON v_public_schedule_PAG8, v_tickets_registry_PAG8, v_passengers_list_PAG8, v_aircrafts_list_PAG8 TO role_cashier_pag8;
-

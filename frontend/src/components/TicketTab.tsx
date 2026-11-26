@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:8000';
+const API = 'http://' + window.location.hostname + ':8000';
 
-export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh }: any) {
+export function TicketTab({ role, flights, tickets, passengers, authHeaders, onRefresh }: any) {
   const [ticketForm, setTicketForm] = useState({
     passenger_id: '',
     flight_id: '',
@@ -21,13 +21,16 @@ export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh
     phone: '',
   });
 
+  const mult = ticketForm.ticket_class === 'Бизнес' ? 1.8 : ticketForm.ticket_class === 'Первый' ? 2.5 : 1.0;
+  const previewPrice = Math.round(Number(ticketForm.base_price || 0) * mult);
+
   const handleIssueTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await axios.post(
         API + '/tickets',
         {
-          passenger_id: Number(ticketForm.passenger_id),
+          passenger_id: role === 'passenger' ? null : Number(ticketForm.passenger_id),
           flight_id: Number(ticketForm.flight_id),
           seat_number: ticketForm.seat_number,
           ticket_class: ticketForm.ticket_class,
@@ -35,7 +38,7 @@ export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh
         },
         authHeaders
       );
-      alert('Билет оформлен! Цена рассчитана функцией PL/Python.');
+      alert('Билет успешно оформлен!');
       onRefresh();
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Ошибка оформления');
@@ -55,20 +58,26 @@ export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh
 
   return (
     <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className={role === 'passenger' ? 'max-w-xl mx-auto' : 'grid md:grid-cols-2 gap-6'}>
         <form className="bg-white p-5 rounded-lg shadow space-y-3" onSubmit={handleIssueTicket}>
-          <h2 className="font-bold text-lg border-b pb-2">Оформить билет (sp_issue_ticket)</h2>
-          <select
-            className="w-full border p-2 rounded"
-            required
-            value={ticketForm.passenger_id}
-            onChange={(e) => setTicketForm({ ...ticketForm, passenger_id: e.target.value })}
-          >
-            <option value="">-- Выберите пассажира --</option>
-            {passengers.map((p: any) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
+          <h2 className="font-bold text-lg border-b pb-2">
+            {role === 'passenger' ? 'Купить авиабилет онлайн' : 'Оформить билет пассажиру'}
+          </h2>
+
+          {role !== 'passenger' && (
+            <select
+              className="w-full border p-2 rounded"
+              required
+              value={ticketForm.passenger_id}
+              onChange={(e) => setTicketForm({ ...ticketForm, passenger_id: e.target.value })}
+            >
+              <option value="">-- Выберите пассажира --</option>
+              {passengers.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          )}
+
           <select
             className="w-full border p-2 rounded"
             required
@@ -78,10 +87,11 @@ export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh
             <option value="">-- Выберите рейс --</option>
             {flights.map((f: any) => (
               <option key={f.flight_id} value={f.flight_id}>
-                {f.flight_number}: {f.origin} - {f.destination}
+                {f.flight_number}: {f.origin} - {f.destination} (Свободно: {f.free_seats})
               </option>
             ))}
           </select>
+
           <div className="grid grid-cols-3 gap-2">
             <input
               className="border p-2 rounded"
@@ -95,74 +105,88 @@ export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh
               value={ticketForm.ticket_class}
               onChange={(e) => setTicketForm({ ...ticketForm, ticket_class: e.target.value })}
             >
-              <option value="Эконом">Эконом</option>
-              <option value="Бизнес">Бизнес</option>
-              <option value="Первый">Первый</option>
+              <option value="Эконом">Эконом (x1.0)</option>
+              <option value="Бизнес">Бизнес (x1.8)</option>
+              <option value="Первый">Первый (x2.5)</option>
             </select>
             <input
               className="border p-2 rounded"
               type="number"
               required
-              placeholder="База руб."
+              placeholder="Базовый тариф"
               value={ticketForm.base_price}
               onChange={(e) => setTicketForm({ ...ticketForm, base_price: e.target.value })}
             />
           </div>
-          <button className="w-full bg-green-600 text-white py-2 rounded font-semibold">Продать билет</button>
+
+          <div className="text-xs bg-blue-50 text-blue-800 p-2 rounded">
+            Итоговая стоимость с учётом класса ({ticketForm.ticket_class}, x{mult}): <b>{previewPrice} руб.</b>
+          </div>
+
+          <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold">
+            {role === 'passenger' ? 'Оплатить билет' : 'Продать билет'}
+          </button>
         </form>
 
-        <form className="bg-white p-5 rounded-lg shadow space-y-3" onSubmit={handleRegisterPassenger}>
-          <h2 className="font-bold text-lg border-b pb-2">Новый пассажир (sp_register_passenger)</h2>
-          <div className="grid grid-cols-3 gap-2">
-            <input
-              className="border p-2 rounded"
-              required
-              placeholder="Фамилия"
-              value={passForm.surname}
-              onChange={(e) => setPassForm({ ...passForm, surname: e.target.value })}
-            />
-            <input
-              className="border p-2 rounded"
-              required
-              placeholder="Имя"
-              value={passForm.name}
-              onChange={(e) => setPassForm({ ...passForm, name: e.target.value })}
-            />
-            <input
-              className="border p-2 rounded"
-              placeholder="Отчество"
-              value={passForm.patronymic}
-              onChange={(e) => setPassForm({ ...passForm, patronymic: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <input
-              className="border p-2 rounded"
-              type="date"
-              required
-              value={passForm.birthdate}
-              onChange={(e) => setPassForm({ ...passForm, birthdate: e.target.value })}
-            />
-            <input
-              className="border p-2 rounded"
-              required
-              placeholder="Паспорт: 4500 123456"
-              value={passForm.passport}
-              onChange={(e) => setPassForm({ ...passForm, passport: e.target.value })}
-            />
-            <input
-              className="border p-2 rounded"
-              placeholder="+79991112233"
-              value={passForm.phone}
-              onChange={(e) => setPassForm({ ...passForm, phone: e.target.value })}
-            />
-          </div>
-          <button className="w-full bg-blue-600 text-white py-2 rounded font-semibold">Зарегистрировать</button>
-        </form>
+        {role !== 'passenger' && (
+          <form className="bg-white p-5 rounded-lg shadow space-y-3" onSubmit={handleRegisterPassenger}>
+            <h2 className="font-bold text-lg border-b pb-2">Новый пассажир (в справочник БД)</h2>
+            <div className="grid grid-cols-3 gap-2">
+              <input
+                className="border p-2 rounded"
+                required
+                placeholder="Фамилия"
+                value={passForm.surname}
+                onChange={(e) => setPassForm({ ...passForm, surname: e.target.value })}
+              />
+              <input
+                className="border p-2 rounded"
+                required
+                placeholder="Имя"
+                value={passForm.name}
+                onChange={(e) => setPassForm({ ...passForm, name: e.target.value })}
+              />
+              <input
+                className="border p-2 rounded"
+                placeholder="Отчество"
+                value={passForm.patronymic}
+                onChange={(e) => setPassForm({ ...passForm, patronymic: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <input
+                className="border p-2 rounded"
+                type="date"
+                required
+                value={passForm.birthdate}
+                onChange={(e) => setPassForm({ ...passForm, birthdate: e.target.value })}
+              />
+              <input
+                className="border p-2 rounded"
+                required
+                placeholder="Паспорт: 4500 123456"
+                value={passForm.passport}
+                onChange={(e) => setPassForm({ ...passForm, passport: e.target.value })}
+              />
+              <input
+                className="border p-2 rounded"
+                placeholder="+79991112233"
+                value={passForm.phone}
+                onChange={(e) => setPassForm({ ...passForm, phone: e.target.value })}
+              />
+            </div>
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold">
+              Зарегистрировать пассажира
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="bg-white p-5 rounded-lg shadow space-y-2">
-        <h2 className="font-bold text-lg border-b pb-2">Реестр билетов (v_tickets_registry_PAG8)</h2>
+        <h2 className="font-bold text-lg border-b pb-2">
+          {role === 'passenger' ? 'Мои купленные билеты' : 'Реестр оформленных билетов'}
+        </h2>
+        {tickets.length === 0 && <p className="text-sm text-gray-500">Билетов пока нет.</p>}
         {tickets.map((t: any) => (
           <div key={t.ticket_id} className="flex flex-wrap justify-between items-center border-b py-2 text-sm">
             <div>
@@ -181,7 +205,7 @@ export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh
                   }}
                   className="text-red-600 hover:underline text-xs"
                 >
-                  Аннулировать
+                  Вернуть билет
                 </button>
               )}
             </div>
@@ -191,4 +215,3 @@ export function TicketTab({ flights, tickets, passengers, authHeaders, onRefresh
     </div>
   );
 }
-

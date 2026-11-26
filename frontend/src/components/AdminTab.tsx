@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:8000';
+const API = 'http://' + window.location.hostname + ':8000';
 
-export function AdminTab({ flights, aircrafts, authHeaders, onRefresh }: any) {
+export function AdminTab({ flights, aircrafts, users, passengers, authHeaders, onRefresh }: any) {
   const [flightForm, setFlightForm] = useState({
     flight_number: '',
     origin: '',
@@ -11,6 +11,14 @@ export function AdminTab({ flights, aircrafts, authHeaders, onRefresh }: any) {
     departure_time: '',
     arrival_time: '',
     aircraft_reg_number: '',
+  });
+
+  const [userForm, setUserForm] = useState({
+    username: '',
+    password: '',
+    role: 'cashier',
+    full_name: '',
+    passenger_id: '',
   });
 
   const handleCreateFlight = async (e: React.FormEvent) => {
@@ -24,10 +32,29 @@ export function AdminTab({ flights, aircrafts, authHeaders, onRefresh }: any) {
     }
   };
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await axios.post(
+        API + '/admin/users',
+        {
+          ...userForm,
+          passenger_id: userForm.passenger_id ? Number(userForm.passenger_id) : null,
+        },
+        authHeaders
+      );
+      alert('Пользователь создан!');
+      setUserForm({ username: '', password: '', role: 'cashier', full_name: '', passenger_id: '' });
+      onRefresh();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Ошибка создания пользователя');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <form className="bg-white p-5 rounded-lg shadow grid md:grid-cols-3 gap-3" onSubmit={handleCreateFlight}>
-        <h2 className="md:col-span-3 font-bold text-lg border-b pb-2">Добавить рейс (sp_create_flight)</h2>
+        <h2 className="md:col-span-3 font-bold text-lg border-b pb-2">Добавление нового рейса</h2>
         <input
           className="border p-2 rounded"
           required
@@ -123,7 +150,66 @@ export function AdminTab({ flights, aircrafts, authHeaders, onRefresh }: any) {
           </div>
         ))}
       </div>
+
+      <div className="bg-white p-5 rounded-lg shadow space-y-4">
+        <h2 className="font-bold text-lg border-b pb-2">Регистрация пользователей системы (Кассиры, Пассажиры, Админы)</h2>
+        <form className="grid md:grid-cols-5 gap-2" onSubmit={handleCreateUser}>
+          <input
+            className="border p-2 rounded text-sm"
+            required
+            placeholder="Логин"
+            value={userForm.username}
+            onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+          />
+          <input
+            className="border p-2 rounded text-sm"
+            type="password"
+            required
+            placeholder="Пароль"
+            value={userForm.password}
+            onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+          />
+          <input
+            className="border p-2 rounded text-sm"
+            required
+            placeholder="ФИО"
+            value={userForm.full_name}
+            onChange={(e) => setUserForm({ ...userForm, full_name: e.target.value })}
+          />
+          <select
+            className="border p-2 rounded text-sm"
+            value={userForm.role}
+            onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+          >
+            <option value="cashier">Кассир (cashier)</option>
+            <option value="passenger">Пассажир (passenger)</option>
+            <option value="admin">Администратор (admin)</option>
+          </select>
+          <button className="bg-green-600 text-white rounded px-3 py-2 text-sm font-semibold">Создать</button>
+          {userForm.role === 'passenger' && (
+            <select
+              className="md:col-span-5 border p-2 rounded text-sm"
+              required
+              value={userForm.passenger_id}
+              onChange={(e) => setUserForm({ ...userForm, passenger_id: e.target.value })}
+            >
+              <option value="">-- Привязать к карточке пассажира из БД --</option>
+              {passengers.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          )}
+        </form>
+
+        <div className="space-y-1 pt-2">
+          {users.map((u: any) => (
+            <div key={u.id} className="flex justify-between text-xs border-b py-1.5">
+              <span><b>{u.username}</b> — {u.full_name}</span>
+              <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold">{u.role}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
-

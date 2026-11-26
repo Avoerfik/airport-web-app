@@ -7,6 +7,6 @@ class AppUser(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     password_hash = Column(String(128), nullable=False)
-    role = Column(String(20), nullable=False)  # 'admin', 'cashier', 'passenger'
+    role = Column(String(20), nullable=False)
     full_name = Column(String(100), nullable=False)
-
+    passenger_id = Column(Integer, nullable=True)
