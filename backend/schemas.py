@@ -36,9 +36,13 @@ class FlightCreate(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     aircraft_reg_number: str
+    base_price: float = 15000.0
 
 class FlightStatusUpdate(BaseModel):
     status: str
+
+class FlightPriceUpdate(BaseModel):
+    base_price: float
 
 class PassengerCreate(BaseModel):
     surname: str
@@ -52,5 +56,6 @@ class TicketIssueRequest(BaseModel):
     passenger_id: Optional[int] = None
     flight_id: int
     seat_number: str
-    ticket_class: str
-    base_price: float
+    ticket_class: Optional[str] = None
+    base_price: Optional[float] = None
+

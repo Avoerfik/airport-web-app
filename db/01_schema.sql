@@ -43,6 +43,7 @@ CREATE TABLE flight_PAG8 (
     flight_departure_time_PAG8 TIMESTAMP               NOT NULL,
     flight_arrival_time_PAG8   TIMESTAMP               NOT NULL,
     flight_status_PAG8         flight_status_type_PAG8 NOT NULL DEFAULT 'Регистрация',
+    flight_base_price_PAG8     NUMERIC(10, 2)          NOT NULL DEFAULT 15000.00 CHECK (flight_base_price_PAG8 > 0),
     aircraft_reg_number_PAG8   VARCHAR(20)             NOT NULL REFERENCES aircraft_PAG8(aircraft_reg_number_PAG8) ON DELETE RESTRICT ON UPDATE CASCADE,
     CHECK (flight_arrival_time_PAG8 > flight_departure_time_PAG8)
 );
@@ -78,11 +79,8 @@ CREATE TABLE audit_log_PAG8 (
     changed_at_PAG8  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ИНДЕКСЫ (Пункт 5 ТР)
--- Составной B-tree индекс для ускорения поиска рейсов по направлению и дате вылета
+-- ИНДЕКСЫ
 CREATE INDEX idx_flight_route_time_PAG8 ON flight_PAG8 (flight_origin_PAG8, flight_destination_PAG8, flight_departure_time_PAG8);
--- Индекс для быстрой фильтрации билетов по рейсу и статусу оплаты
 CREATE INDEX idx_ticket_flight_status_PAG8 ON ticket_PAG8 (flight_id_PAG8, ticket_status_PAG8);
--- Индекс для поиска пассажира по фамилии
 CREATE INDEX idx_passenger_surname_PAG8 ON passenger_PAG8 (passenger_surname_PAG8);
 

@@ -137,7 +137,7 @@ def get_analytics(user=Depends(require_roles(["admin"])), conn=Depends(get_dbapi
 def create_flight(data: schemas.FlightCreate, user=Depends(require_roles(["admin"])), conn=Depends(get_dbapi_conn)):
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_create_flight_PAG8(%s, %s, %s, %s, %s, %s)", (data.flight_number, data.origin, data.destination, data.departure_time, data.arrival_time, data.aircraft_reg_number))
+            cur.execute("CALL sp_create_flight_PAG8(%s, %s, %s, %s, %s, %s, %s)", (data.flight_number, data.origin, data.destination, data.departure_time, data.arrival_time, data.aircraft_reg_number, data.base_price))
         conn.commit()
         return {"status": "ok"}
     except psycopg2.Error as e:
@@ -205,6 +205,17 @@ def cancel_ticket(ticket_id: int, user=Depends(require_roles(["admin", "cashier"
 @app.get("/flights/{flight_id}/seats")
 def get_available_seats(flight_id: int, conn=Depends(get_dbapi_conn)):
     with conn.cursor() as cur:
-        cur.execute("SELECT seat_number FROM fn_get_available_seats_PAG8(%s)", (flight_id,))
-        return [row["seat_number"] for row in cur.fetchall()]
+        cur.execute("SELECT seat_number, seat_class, final_price FROM fn_get_available_seats_PAG8(%s)", (flight_id,))
+        return cur.fetchall()
+
+@app.patch("/flights/{flight_id}/price")
+def update_flight_price(flight_id: int, data: schemas.FlightPriceUpdate, user=Depends(require_roles(["admin", "cashier"])), conn=Depends(get_dbapi_conn)):
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_update_flight_price_PAG8(%s, %s)", (flight_id, data.base_price))
+        conn.commit()
+        return {"status": "ok"}
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=e.pgerror.split("\n"))
 

@@ -1,4 +1,3 @@
--- 1. Скалярная функция: расчёт общей выручки по конкретному рейсу (Пункт 8 ТР)
 CREATE OR REPLACE FUNCTION fn_get_flight_revenue_PAG8(p_flight_id INT)
 RETURNS NUMERIC(12, 2)
 LANGUAGE sql
@@ -9,7 +8,6 @@ AS $$
       AND ticket_status_PAG8 = 'Оплачен';
 $$;
 
--- 2. Табличная функция: финансовая аналитика по всем рейсам (Пункт 8 ТР)
 CREATE OR REPLACE FUNCTION fn_flights_analytics_PAG8()
 RETURNS TABLE (
     flight_id INT,
@@ -38,7 +36,6 @@ AS $$
     ORDER BY total_revenue DESC;
 $$;
 
--- 3. Функция на PL/Python (plpython3u): валидация серии и номера паспорта РФ (Пункт 9 ТР)
 CREATE OR REPLACE FUNCTION fn_py_validate_passport_PAG8(p_passport TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpython3u
@@ -49,7 +46,6 @@ if not p_passport:
 return bool(re.match(r'^\d{4}\s\d{6}$', p_passport.strip()))
 $$;
 
--- 4. Функция на PL/Python (plpython3u): динамический расчёт цены билета по классу и загруженности (Пункт 9 ТР)
 CREATE OR REPLACE FUNCTION fn_py_calc_dynamic_price_PAG8(
     p_base_price NUMERIC,
     p_ticket_class TEXT,
@@ -72,7 +68,6 @@ elif float(p_load_percent) >= 50.0:
 return round(price, 2)
 $$;
 
--- 5. Функция на PL/Python: проверка существования места в салоне по вместимости самолёта
 CREATE OR REPLACE FUNCTION fn_py_validate_seat_PAG8(p_seat TEXT, p_capacity INT)
 RETURNS BOOLEAN
 LANGUAGE plpython3u
@@ -84,32 +79,41 @@ seat = p_seat.strip().upper()
 m = re.match(r'^(\d{1,2})([A-F])$', seat)
 if not m:
     return False
-
 row_num = int(m.group(1))
 letter = m.group(2)
-
-# Компоновка: для SSJ-100 (< 120 мест) — 5 кресел в ряду (A,C,D,E,F), иначе 6 кресел (A,B,C,D,E,F)
 letters = ['A', 'C', 'D', 'E', 'F'] if int(p_capacity) < 120 else ['A', 'B', 'C', 'D', 'E', 'F']
 if letter not in letters:
     return False
-
 max_rows = math.ceil(int(p_capacity) / len(letters))
 if row_num < 1 or row_num > max_rows:
     return False
-
-# Проверка общего порядкового номера места (для неполного последнего ряда)
 seat_index = (row_num - 1) * len(letters) + letters.index(letter) + 1
 return seat_index <= int(p_capacity)
 $$;
 
--- 6. Табличная функция: список всех реально существующих СВОБОДНЫХ мест на рейсе
-CREATE OR REPLACE FUNCTION fn_get_available_seats_PAG8(p_flight_id INT)
-RETURNS TABLE (seat_number VARCHAR)
+CREATE OR REPLACE FUNCTION fn_py_get_seat_class_PAG8(p_seat TEXT)
+RETURNS TEXT
 LANGUAGE plpython3u
 AS $$
-import math
+import re
+m = re.match(r'^(\d{1,2})([A-F])$', p_seat.strip().upper())
+if not m:
+    return 'Эконом'
+row_num = int(m.group(1))
+if row_num == 1:
+    return 'Первый'
+elif row_num <= 4:
+    return 'Бизнес'
+return 'Эконом'
+$$;
+
+DROP FUNCTION IF EXISTS fn_get_available_seats_PAG8(INT);
+CREATE FUNCTION fn_get_available_seats_PAG8(p_flight_id INT)
+RETURNS TABLE (seat_number VARCHAR, seat_class VARCHAR, final_price NUMERIC(10, 2))
+LANGUAGE plpython3u
+AS $$
 res = plpy.execute(f"""
-    SELECT a.aircraft_capacity_PAG8 AS cap
+    SELECT a.aircraft_capacity_PAG8 AS cap, f.flight_base_price_PAG8 AS base_price
     FROM flight_PAG8 f
     JOIN aircraft_PAG8 a ON a.aircraft_reg_number_PAG8 = f.aircraft_reg_number_PAG8
     WHERE f.flight_id_PAG8 = {int(p_flight_id)}
@@ -117,7 +121,9 @@ res = plpy.execute(f"""
 if not res:
     return []
 
-cap = int(res[0]['cap'])
+cap = int(res['cap'])
+base_price = float(res['base_price'])
+
 occupied_res = plpy.execute(f"""
     SELECT seat_number_PAG8 AS seat
     FROM ticket_PAG8
@@ -135,7 +141,9 @@ while count < cap:
             break
         s = f"{row}{l}"
         if s not in occupied:
-            seats.append(s)
+            s_class = 'Первый' if row == 1 else ('Бизнес' if row <= 4 else 'Эконом')
+            mult = 2.5 if row == 1 else (1.8 if row <= 4 else 1.0)
+            seats.append((s, s_class, round(base_price * mult, 2)))
         count += 1
     row += 1
 return seats

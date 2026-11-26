@@ -8,11 +8,11 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
     passenger_id: '',
     flight_id: selectedFlightId || '',
     seat_number: '',
-    ticket_class: 'Эконом',
-    base_price: '15000',
+    custom_price: '',
   });
 
-  const [availableSeats, setAvailableSeats] = useState<string[]>([]);
+  const [availableSeats, setAvailableSeats] = useState<any[]>([]);
+  const [classFilter, setClassFilter] = useState<string>('ALL');
 
   const loadSeats = async (fid: string) => {
     if (!fid) {
@@ -22,7 +22,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
     try {
       const res = await axios.get(API + '/flights/' + fid + '/seats');
       setAvailableSeats(res.data);
-      setTicketForm((prev) => ({ ...prev, seat_number: res.data[0] || '' }));
+      setTicketForm((prev) => ({ ...prev, seat_number: res.data?.seat_number || '' }));
     } catch (e) {
       console.error(e);
     }
@@ -45,8 +45,8 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
   });
 
   const availableFlights = flights.filter((f: any) => f.status === 'Регистрация' && f.free_seats > 0);
-  const mult = ticketForm.ticket_class === 'Бизнес' ? 1.8 : ticketForm.ticket_class === 'Первый' ? 2.5 : 1.0;
-  const previewPrice = Math.round(Number(ticketForm.base_price || 0) * mult);
+  const filteredSeats = classFilter === 'ALL' ? availableSeats : availableSeats.filter((s) => s.seat_class === classFilter);
+  const selectedSeatObj = availableSeats.find((s) => s.seat_number === ticketForm.seat_number);
 
   const handleIssueTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +57,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
           passenger_id: role === 'passenger' ? null : Number(ticketForm.passenger_id),
           flight_id: Number(ticketForm.flight_id),
           seat_number: ticketForm.seat_number,
-          ticket_class: ticketForm.ticket_class,
-          base_price: Number(ticketForm.base_price),
+          base_price: role !== 'passenger' && ticketForm.custom_price ? Number(ticketForm.custom_price) : null,
         },
         authHeaders
       );
@@ -116,12 +115,23 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
             <option value="">-- Выберите рейс (открыта регистрация) --</option>
             {availableFlights.map((f: any) => (
               <option key={f.flight_id} value={f.flight_id}>
-                {f.flight_number}: {f.origin} - {f.destination} ({f.aircraft_model}, свободно: {f.free_seats})
+                {f.flight_number}: {f.origin} - {f.destination} (база {f.base_price} руб., свободно: {f.free_seats})
               </option>
             ))}
           </select>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              className="border p-2 rounded"
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+            >
+              <option value="ALL">Все классы салона</option>
+              <option value="Первый">Первый класс (1 ряд, x2.5)</option>
+              <option value="Бизнес">Бизнес-класс (2–4 ряды, x1.8)</option>
+              <option value="Эконом">Эконом-класс (5+ ряды, x1.0)</option>
+            </select>
+
             <select
               className="border p-2 rounded"
               required
@@ -129,35 +139,33 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
               value={ticketForm.seat_number}
               onChange={(e) => setTicketForm({ ...ticketForm, seat_number: e.target.value })}
             >
-              <option value="">-- Место --</option>
-              {availableSeats.map((s) => (
-                <option key={s} value={s}>Место {s}</option>
+              <option value="">-- Выберите место --</option>
+              {filteredSeats.map((s) => (
+                <option key={s.seat_number} value={s.seat_number}>
+                  {s.seat_number} — {s.seat_class} ({s.final_price} руб.)
+                </option>
               ))}
             </select>
-
-            <select
-              className="border p-2 rounded"
-              value={ticketForm.ticket_class}
-              onChange={(e) => setTicketForm({ ...ticketForm, ticket_class: e.target.value })}
-            >
-              <option value="Эконом">Эконом (x1.0)</option>
-              <option value="Бизнес">Бизнес (x1.8)</option>
-              <option value="Первый">Первый (x2.5)</option>
-            </select>
-
-            <input
-              className="border p-2 rounded"
-              type="number"
-              required
-              placeholder="Базовый тариф"
-              value={ticketForm.base_price}
-              onChange={(e) => setTicketForm({ ...ticketForm, base_price: e.target.value })}
-            />
           </div>
 
-          <div className="text-xs bg-blue-50 text-blue-800 p-2 rounded">
-            Итоговая стоимость с учётом класса ({ticketForm.ticket_class}, x{mult}): <b>{previewPrice} руб.</b>
-          </div>
+          {role !== 'passenger' && (
+            <div>
+              <input
+                className="w-full border p-2 rounded text-sm"
+                type="number"
+                placeholder="Ручной базовый тариф (необязательно — по умолчанию берётся тариф рейса)"
+                value={ticketForm.custom_price}
+                onChange={(e) => setTicketForm({ ...ticketForm, custom_price: e.target.value })}
+              />
+            </div>
+          )}
+
+          {selectedSeatObj && (
+            <div className="text-xs bg-blue-50 text-blue-800 p-2.5 rounded flex justify-between items-center">
+              <span>Класс обслуживания: <b>{selectedSeatObj.seat_class}</b> (место {selectedSeatObj.seat_number})</span>
+              <span>К оплате: <b>{selectedSeatObj.final_price} руб.</b></span>
+            </div>
+          )}
 
           <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold">
             {role === 'passenger' ? 'Оплатить билет' : 'Продать билет'}
@@ -218,3 +226,4 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
     </div>
   );
 }
+

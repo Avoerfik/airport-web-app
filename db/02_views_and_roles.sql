@@ -1,3 +1,4 @@
+-- Представление 1: Публичное табло рейсов
 CREATE OR REPLACE VIEW v_public_schedule_PAG8 AS
 SELECT 
     f.flight_id_PAG8 AS flight_id,
@@ -7,6 +8,7 @@ SELECT
     f.flight_departure_time_PAG8 AS departure_time,
     f.flight_arrival_time_PAG8 AS arrival_time,
     f.flight_status_PAG8::text AS status,
+    f.flight_base_price_PAG8 AS base_price,
     a.aircraft_model_PAG8 AS aircraft_model,
     a.aircraft_reg_number_PAG8 AS aircraft_reg_number,
     a.aircraft_capacity_PAG8 AS capacity,
@@ -16,6 +18,7 @@ JOIN aircraft_PAG8 a ON a.aircraft_reg_number_PAG8 = f.aircraft_reg_number_PAG8
 LEFT JOIN ticket_PAG8 t ON t.flight_id_PAG8 = f.flight_id_PAG8
 GROUP BY f.flight_id_PAG8, a.aircraft_reg_number_PAG8;
 
+-- Представление 2: Реестр проданных билетов
 DROP VIEW IF EXISTS v_tickets_registry_PAG8;
 CREATE VIEW v_tickets_registry_PAG8 AS
 SELECT 
@@ -39,6 +42,7 @@ JOIN passenger_PAG8 p ON p.passenger_id_PAG8 = b.passenger_id_PAG8
 JOIN flight_PAG8 f ON f.flight_id_PAG8 = t.flight_id_PAG8
 JOIN editor_PAG8 e ON e.editor_id_PAG8 = t.editor_id_PAG8;
 
+-- Представление 3: Справочник пассажиров для форм
 CREATE OR REPLACE VIEW v_passengers_list_PAG8 AS
 SELECT passenger_id_PAG8 AS id,
        passenger_surname_PAG8 || ' ' || passenger_name_PAG8 || ' (' || passenger_passport_PAG8 || ')' AS label,
@@ -48,12 +52,14 @@ SELECT passenger_id_PAG8 AS id,
        passenger_phone_PAG8 AS phone
 FROM passenger_PAG8;
 
+-- Представление 4: Справочник самолётов для форм
 CREATE OR REPLACE VIEW v_aircrafts_list_PAG8 AS
 SELECT aircraft_reg_number_PAG8 AS reg_number,
        aircraft_model_PAG8 AS model,
        aircraft_capacity_PAG8 AS capacity
 FROM aircraft_PAG8;
 
+-- Представление 5: Журнал аудита
 CREATE OR REPLACE VIEW v_audit_log_PAG8 AS
 SELECT log_id_PAG8 AS id,
        table_name_PAG8 AS table_name,
@@ -64,6 +70,7 @@ FROM audit_log_PAG8
 ORDER BY log_id_PAG8 DESC
 LIMIT 50;
 
+-- Роли на уровне СУБД
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'role_passenger_pag8') THEN
@@ -76,3 +83,4 @@ END $$;
 
 GRANT SELECT ON v_public_schedule_PAG8 TO role_passenger_pag8;
 GRANT SELECT ON v_public_schedule_PAG8, v_tickets_registry_PAG8, v_passengers_list_PAG8, v_aircrafts_list_PAG8 TO role_cashier_pag8;
+

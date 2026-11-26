@@ -239,11 +239,11 @@ export default function App() {
                       <p>Вылет: {new Date(f.departure_time).toLocaleString('ru-RU')}</p>
                       <p>Прилёт: {new Date(f.arrival_time).toLocaleString('ru-RU')}</p>
                       <p>Борт: {f.aircraft_model} ({f.aircraft_reg_number})</p>
-                      <p className="font-semibold text-green-700">Свободных мест: {f.free_seats} из {f.capacity}</p>
+                      <p className="font-semibold text-green-700">Свободных мест: {f.free_seats} из {f.capacity} | Базовый тариф: {f.base_price} руб.</p>
                     </div>
                   </div>
-                  {role === 'passenger' && (
-                    <button onClick={() => setTab('tickets')} className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-sm font-medium">
+                  {role === 'passenger' && f.status === 'Регистрация' && (
+                    <button onClick={() => { setSelectedFlightId(String(f.flight_id)); setTab('tickets'); }} className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-sm font-medium">
                       Купить билет на рейс
                     </button>
                   )}
