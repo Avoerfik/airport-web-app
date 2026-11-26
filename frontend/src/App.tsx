@@ -28,7 +28,7 @@ function App() {
   return (
     <div className="min-h-screen p-8">
       <header className="mb-8 border-b pb-4">
-        <h1 className="text-3xl font-bold text-blue-600">?? Аэропорт: Табло рейсов</h1>
+        <h1 className="text-3xl font-bold text-blue-600">?? РђСЌСЂРѕРїРѕСЂС‚: РўР°Р±Р»Рѕ СЂРµР№СЃРѕРІ</h1>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -37,7 +37,7 @@ function App() {
             <div className="flex justify-between items-start mb-4">
               <h2 className="text-2xl font-bold">{flight.flight_number}</h2>
               <span className={`px-2 py-1 rounded text-sm font-semibold ${
-                flight.status === 'По расписанию' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                flight.status === 'РџРѕ СЂР°СЃРїРёСЃР°РЅРёСЋ' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
               }`}>
                 {flight.status}
               </span>
@@ -50,8 +50,8 @@ function App() {
             </div>
             
             <div className="text-sm text-gray-600">
-              <p>Вылет: {new Date(flight.departure_time).toLocaleString('ru-RU')}</p>
-              <p className="mt-2">Самолет: {flight.aircraft.model} ({flight.aircraft.reg_number})</p>
+              <p>Р’С‹Р»РµС‚: {new Date(flight.departure_time).toLocaleString('ru-RU')}</p>
+              <p className="mt-2">РЎР°РјРѕР»РµС‚: {flight.aircraft.model} ({flight.aircraft.reg_number})</p>
             </div>
           </div>
         ))}

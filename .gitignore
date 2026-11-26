@@ -15,7 +15,7 @@ dist-ssr/
 *.local
 .vite/
 
-# --- IDE / Редакторы ---
+# --- IDE / Р РµРґР°РєС‚РѕСЂС‹ ---
 .vscode/
 .idea/
 *.swp

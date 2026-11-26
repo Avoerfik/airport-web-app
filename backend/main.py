@@ -22,13 +22,13 @@ def get_flights(db: Session = Depends(get_db)):
 
 @app.post("/tickets", response_model=schemas.TicketResponse)
 def create_ticket(ticket: schemas.TicketBase, db: Session = Depends(get_db)):
-    # Проверка, что место свободно
+    # РџСЂРѕРІРµСЂРєР°, С‡С‚Рѕ РјРµСЃС‚Рѕ СЃРІРѕР±РѕРґРЅРѕ
     existing = db.query(models.Ticket).filter(
         models.Ticket.flight_id == ticket.flight_id,
         models.Ticket.seat_number == ticket.seat_number
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Место уже занято")
+        raise HTTPException(status_code=400, detail="РњРµСЃС‚Рѕ СѓР¶Рµ Р·Р°РЅСЏС‚Рѕ")
         
     db_ticket = models.Ticket(**ticket.model_dump())
     db.add(db_ticket)

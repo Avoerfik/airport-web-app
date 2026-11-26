@@ -31,7 +31,7 @@ class Flight(Base):
     destination = Column(String(100), nullable=False)
     departure_time = Column(DateTime, nullable=False)
     arrival_time = Column(DateTime, nullable=False)
-    status = Column(String(50), default='По расписанию')
+    status = Column(String(50), default='РџРѕ СЂР°СЃРїРёСЃР°РЅРёСЋ')
     aircraft_id = Column(Integer, ForeignKey("aircraft.id"), nullable=False)
 
     aircraft = relationship("Aircraft", back_populates="flights")

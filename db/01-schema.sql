@@ -1,8 +1,8 @@
--- Создание ENUM для статусов
-CREATE TYPE flight_status AS ENUM ('По расписанию', 'Задержан', 'Вылетел', 'Прибыл', 'Отменен');
-CREATE TYPE ticket_class AS ENUM ('Эконом', 'Бизнес', 'Первый');
+-- РЎРѕР·РґР°РЅРёРµ ENUM РґР»СЏ СЃС‚Р°С‚СѓСЃРѕРІ
+CREATE TYPE flight_status AS ENUM ('РџРѕ СЂР°СЃРїРёСЃР°РЅРёСЋ', 'Р—Р°РґРµСЂР¶Р°РЅ', 'Р’С‹Р»РµС‚РµР»', 'РџСЂРёР±С‹Р»', 'РћС‚РјРµРЅРµРЅ');
+CREATE TYPE ticket_class AS ENUM ('Р­РєРѕРЅРѕРј', 'Р‘РёР·РЅРµСЃ', 'РџРµСЂРІС‹Р№');
 
--- Таблица Самолеты
+-- РўР°Р±Р»РёС†Р° РЎР°РјРѕР»РµС‚С‹
 CREATE TABLE aircraft (
     id SERIAL PRIMARY KEY,
     model VARCHAR(50) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE aircraft (
     capacity INT NOT NULL CHECK (capacity > 0)
 );
 
--- Таблица Пассажиры
+-- РўР°Р±Р»РёС†Р° РџР°СЃСЃР°Р¶РёСЂС‹
 CREATE TABLE passenger (
     id SERIAL PRIMARY KEY,
     surname VARCHAR(50) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE passenger (
     phone VARCHAR(16)
 );
 
--- Таблица Рейсы
+-- РўР°Р±Р»РёС†Р° Р РµР№СЃС‹
 CREATE TABLE flight (
     id SERIAL PRIMARY KEY,
     flight_number VARCHAR(10) NOT NULL,
@@ -28,11 +28,11 @@ CREATE TABLE flight (
     destination VARCHAR(100) NOT NULL,
     departure_time TIMESTAMP NOT NULL,
     arrival_time TIMESTAMP NOT NULL,
-    status flight_status DEFAULT 'По расписанию',
+    status flight_status DEFAULT 'РџРѕ СЂР°СЃРїРёСЃР°РЅРёСЋ',
     aircraft_id INT NOT NULL REFERENCES aircraft(id) ON DELETE RESTRICT
 );
 
--- Таблица Билеты
+-- РўР°Р±Р»РёС†Р° Р‘РёР»РµС‚С‹
 CREATE TABLE ticket (
     id SERIAL PRIMARY KEY,
     flight_id INT NOT NULL REFERENCES flight(id) ON DELETE CASCADE,
@@ -41,5 +41,5 @@ CREATE TABLE ticket (
     ticket_class ticket_class NOT NULL,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     purchase_date DATE DEFAULT CURRENT_DATE,
-    UNIQUE (flight_id, seat_number) -- Одно место на рейс - один билет
+    UNIQUE (flight_id, seat_number) -- РћРґРЅРѕ РјРµСЃС‚Рѕ РЅР° СЂРµР№СЃ - РѕРґРёРЅ Р±РёР»РµС‚
 );
