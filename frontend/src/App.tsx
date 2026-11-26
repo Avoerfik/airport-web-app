@@ -26,7 +26,7 @@ export default function App() {
   });
   const [error, setError] = useState('');
 
-  const [tab, setTab] = useState<'schedule' | 'tickets' | 'admin' | 'analytics'>('schedule');
+  const [tab, setTab] = useState<'schedule' | 'tickets' | 'admin' | 'analytics'>('schedule'); const [selectedFlightId, setSelectedFlightId] = useState<string>('');
   const [flights, setFlights] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [passengers, setPassengers] = useState<any[]>([]);
@@ -254,7 +254,7 @@ export default function App() {
         )}
 
         {tab === 'tickets' && (
-          <TicketTab role={role} flights={flights} tickets={tickets} passengers={passengers} authHeaders={authHeaders} onRefresh={loadAll} />
+          <TicketTab role={role} selectedFlightId={selectedFlightId} flights={flights} tickets={tickets} passengers={passengers} authHeaders={authHeaders} onRefresh={loadAll} />
         )}
 
         {tab === 'admin' && (

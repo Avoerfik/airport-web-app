@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API = 'http://' + window.location.hostname + ':8000';
 
-export function TicketTab({ role, flights, tickets, passengers, authHeaders, onRefresh }: any) {
+export function TicketTab({ role, flights, tickets, passengers, selectedFlightId, authHeaders, onRefresh }: any) {
   const [ticketForm, setTicketForm] = useState({
     passenger_id: '',
-    flight_id: '',
+    flight_id: selectedFlightId || '',
     seat_number: '',
     ticket_class: 'Эконом',
     base_price: '15000',
   });
+
+  useEffect(() => {
+    if (selectedFlightId) {
+      setTicketForm((prev) => ({ ...prev, flight_id: String(selectedFlightId) }));
+    }
+  }, [selectedFlightId]);
 
   const [passForm, setPassForm] = useState({
     surname: '',
@@ -21,6 +27,7 @@ export function TicketTab({ role, flights, tickets, passengers, authHeaders, onR
     phone: '',
   });
 
+  const availableFlights = flights.filter((f: any) => f.status === 'Регистрация' && f.free_seats > 0);
   const mult = ticketForm.ticket_class === 'Бизнес' ? 1.8 : ticketForm.ticket_class === 'Первый' ? 2.5 : 1.0;
   const previewPrice = Math.round(Number(ticketForm.base_price || 0) * mult);
 
@@ -84,8 +91,8 @@ export function TicketTab({ role, flights, tickets, passengers, authHeaders, onR
             value={ticketForm.flight_id}
             onChange={(e) => setTicketForm({ ...ticketForm, flight_id: e.target.value })}
           >
-            <option value="">-- Выберите рейс --</option>
-            {flights.map((f: any) => (
+            <option value="">-- Выберите рейс (только открытая регистрация) --</option>
+            {availableFlights.map((f: any) => (
               <option key={f.flight_id} value={f.flight_id}>
                 {f.flight_number}: {f.origin} - {f.destination} (Свободно: {f.free_seats})
               </option>
@@ -132,48 +139,14 @@ export function TicketTab({ role, flights, tickets, passengers, authHeaders, onR
           <form className="bg-white p-5 rounded-lg shadow space-y-3" onSubmit={handleRegisterPassenger}>
             <h2 className="font-bold text-lg border-b pb-2">Новый пассажир (в справочник БД)</h2>
             <div className="grid grid-cols-3 gap-2">
-              <input
-                className="border p-2 rounded"
-                required
-                placeholder="Фамилия"
-                value={passForm.surname}
-                onChange={(e) => setPassForm({ ...passForm, surname: e.target.value })}
-              />
-              <input
-                className="border p-2 rounded"
-                required
-                placeholder="Имя"
-                value={passForm.name}
-                onChange={(e) => setPassForm({ ...passForm, name: e.target.value })}
-              />
-              <input
-                className="border p-2 rounded"
-                placeholder="Отчество"
-                value={passForm.patronymic}
-                onChange={(e) => setPassForm({ ...passForm, patronymic: e.target.value })}
-              />
+              <input className="border p-2 rounded" required placeholder="Фамилия" value={passForm.surname} onChange={(e) => setPassForm({ ...passForm, surname: e.target.value })} />
+              <input className="border p-2 rounded" required placeholder="Имя" value={passForm.name} onChange={(e) => setPassForm({ ...passForm, name: e.target.value })} />
+              <input className="border p-2 rounded" placeholder="Отчество" value={passForm.patronymic} onChange={(e) => setPassForm({ ...passForm, patronymic: e.target.value })} />
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <input
-                className="border p-2 rounded"
-                type="date"
-                required
-                value={passForm.birthdate}
-                onChange={(e) => setPassForm({ ...passForm, birthdate: e.target.value })}
-              />
-              <input
-                className="border p-2 rounded"
-                required
-                placeholder="Паспорт: 4500 123456"
-                value={passForm.passport}
-                onChange={(e) => setPassForm({ ...passForm, passport: e.target.value })}
-              />
-              <input
-                className="border p-2 rounded"
-                placeholder="+79991112233"
-                value={passForm.phone}
-                onChange={(e) => setPassForm({ ...passForm, phone: e.target.value })}
-              />
+              <input className="border p-2 rounded" type="date" required value={passForm.birthdate} onChange={(e) => setPassForm({ ...passForm, birthdate: e.target.value })} />
+              <input className="border p-2 rounded" required placeholder="Паспорт: 4500 123456" value={passForm.passport} onChange={(e) => setPassForm({ ...passForm, passport: e.target.value })} />
+              <input className="border p-2 rounded" placeholder="+79991112233" value={passForm.phone} onChange={(e) => setPassForm({ ...passForm, phone: e.target.value })} />
             </div>
             <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold">
               Зарегистрировать пассажира
