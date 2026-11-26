@@ -121,8 +121,8 @@ res = plpy.execute(f"""
 if not res:
     return []
 
-cap = int(res['cap'])
-base_price = float(res['base_price'])
+cap = int(next(iter(res))['cap'])
+base_price = float(next(iter(res))['base_price'])
 
 occupied_res = plpy.execute(f"""
     SELECT seat_number_PAG8 AS seat

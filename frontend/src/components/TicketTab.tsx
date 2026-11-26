@@ -140,7 +140,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
               onChange={(e) => {
                 const cls = e.target.value;
                 const seatsOfClass = availableSeats.filter((s) => s.seat_class === cls);
-                const firstSeat = seatsOfClass.length > 0 ? seatsOfClass.seat_number : '';
+                const firstSeat = seatsOfClass.length > 0 ? (seatsOfClass.find(() => true)?.seat_number || '') : '';
                 setTicketForm({ ...ticketForm, seat_class: cls, seat_number: firstSeat });
               }}
             >
