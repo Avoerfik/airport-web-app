@@ -7,12 +7,12 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
   const [ticketForm, setTicketForm] = useState({
     passenger_id: '',
     flight_id: selectedFlightId || '',
+    seat_class: '',
     seat_number: '',
     custom_price: '',
   });
 
   const [availableSeats, setAvailableSeats] = useState<any[]>([]);
-  const [classFilter, setClassFilter] = useState<string>('ALL');
 
   const loadSeats = async (fid: string) => {
     if (!fid) {
@@ -21,19 +21,26 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
     }
     try {
       const res = await axios.get(API + '/flights/' + fid + '/seats');
-      setAvailableSeats(res.data);
-      setTicketForm((prev) => ({ ...prev, seat_number: res.data?.seat_number || '' }));
+      setAvailableSeats(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error(e);
+      setAvailableSeats([]);
     }
   };
 
   useEffect(() => {
     if (selectedFlightId) {
-      setTicketForm((prev) => ({ ...prev, flight_id: String(selectedFlightId) }));
-      loadSeats(String(selectedFlightId));
+      const fid = String(selectedFlightId);
+      setTicketForm((prev) => ({ ...prev, flight_id: fid, seat_class: '', seat_number: '' }));
+      loadSeats(fid);
     }
   }, [selectedFlightId]);
+
+  useEffect(() => {
+    if (ticketForm.flight_id && availableSeats.length === 0) {
+      loadSeats(String(ticketForm.flight_id));
+    }
+  }, [ticketForm.flight_id]);
 
   const [passForm, setPassForm] = useState({
     surname: '',
@@ -45,8 +52,10 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
   });
 
   const availableFlights = flights.filter((f: any) => f.status === 'Регистрация' && f.free_seats > 0);
-  const filteredSeats = classFilter === 'ALL' ? availableSeats : availableSeats.filter((s) => s.seat_class === classFilter);
-  const selectedSeatObj = availableSeats.find((s) => s.seat_number === ticketForm.seat_number);
+  const filteredSeats = ticketForm.seat_class
+    ? availableSeats.filter((s) => s.seat_class === ticketForm.seat_class)
+    : [];
+  const selectedSeatObj = filteredSeats.find((s) => s.seat_number === ticketForm.seat_number);
 
   const handleIssueTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +71,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
         authHeaders
       );
       alert('Билет успешно оформлен на место ' + ticketForm.seat_number + '!');
+      setTicketForm((prev) => ({ ...prev, seat_number: '' }));
       loadSeats(ticketForm.flight_id);
       onRefresh();
     } catch (err: any) {
@@ -79,6 +89,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
       alert(err.response?.data?.detail || 'Ошибка регистрации');
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -108,7 +119,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
             value={ticketForm.flight_id}
             onChange={(e) => {
               const fid = e.target.value;
-              setTicketForm({ ...ticketForm, flight_id: fid });
+              setTicketForm({ ...ticketForm, flight_id: fid, seat_class: '', seat_number: '' });
               loadSeats(fid);
             }}
           >
@@ -122,52 +133,60 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
 
           <div className="grid grid-cols-2 gap-2">
             <select
-              className="border p-2 rounded"
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
+              className="border p-2 rounded disabled:bg-gray-100 disabled:text-gray-400"
+              required
+              disabled={!ticketForm.flight_id}
+              value={ticketForm.seat_class}
+              onChange={(e) => {
+                const cls = e.target.value;
+                const seatsOfClass = availableSeats.filter((s) => s.seat_class === cls);
+                const firstSeat = seatsOfClass.length > 0 ? seatsOfClass.seat_number : '';
+                setTicketForm({ ...ticketForm, seat_class: cls, seat_number: firstSeat });
+              }}
             >
-              <option value="ALL">Все классы салона</option>
+              <option value="">-- Выберите класс --</option>
               <option value="Первый">Первый класс (1 ряд, x2.5)</option>
               <option value="Бизнес">Бизнес-класс (2–4 ряды, x1.8)</option>
               <option value="Эконом">Эконом-класс (5+ ряды, x1.0)</option>
             </select>
 
             <select
-              className="border p-2 rounded"
+              className="border p-2 rounded disabled:bg-gray-100 disabled:text-gray-400"
               required
-              disabled={!ticketForm.flight_id}
+              disabled={!ticketForm.flight_id || !ticketForm.seat_class}
               value={ticketForm.seat_number}
               onChange={(e) => setTicketForm({ ...ticketForm, seat_number: e.target.value })}
             >
               <option value="">-- Выберите место --</option>
               {filteredSeats.map((s) => (
                 <option key={s.seat_number} value={s.seat_number}>
-                  {s.seat_number} — {s.seat_class} ({s.final_price} руб.)
+                  Место {s.seat_number} ({s.final_price} руб.)
                 </option>
               ))}
             </select>
           </div>
 
           {role !== 'passenger' && (
-            <div>
-              <input
-                className="w-full border p-2 rounded text-sm"
-                type="number"
-                placeholder="Ручной базовый тариф (необязательно — по умолчанию берётся тариф рейса)"
-                value={ticketForm.custom_price}
-                onChange={(e) => setTicketForm({ ...ticketForm, custom_price: e.target.value })}
-              />
-            </div>
+            <input
+              className="w-full border p-2 rounded text-sm"
+              type="number"
+              placeholder="Ручной базовый тариф (необязательно)"
+              value={ticketForm.custom_price}
+              onChange={(e) => setTicketForm({ ...ticketForm, custom_price: e.target.value })}
+            />
           )}
 
           {selectedSeatObj && (
             <div className="text-xs bg-blue-50 text-blue-800 p-2.5 rounded flex justify-between items-center">
-              <span>Класс обслуживания: <b>{selectedSeatObj.seat_class}</b> (место {selectedSeatObj.seat_number})</span>
-              <span>К оплате: <b>{selectedSeatObj.final_price} руб.</b></span>
+              <span>Класс: <b>{selectedSeatObj.seat_class}</b> | Место: <b>{selectedSeatObj.seat_number}</b></span>
+              <span>Итого к оплате: <b>{selectedSeatObj.final_price} руб.</b></span>
             </div>
           )}
 
-          <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold">
+          <button
+            disabled={!ticketForm.seat_number}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 rounded font-semibold"
+          >
             {role === 'passenger' ? 'Оплатить билет' : 'Продать билет'}
           </button>
         </form>
