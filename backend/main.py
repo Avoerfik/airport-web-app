@@ -202,3 +202,9 @@ def cancel_ticket(ticket_id: int, user=Depends(require_roles(["admin", "cashier"
         conn.rollback()
         raise HTTPException(status_code=400, detail=e.pgerror.split("\n")[0])
 
+@app.get("/flights/{flight_id}/seats")
+def get_available_seats(flight_id: int, conn=Depends(get_dbapi_conn)):
+    with conn.cursor() as cur:
+        cur.execute("SELECT seat_number FROM fn_get_available_seats_PAG8(%s)", (flight_id,))
+        return [row["seat_number"] for row in cur.fetchall()]
+

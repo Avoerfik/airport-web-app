@@ -71,3 +71,73 @@ elif float(p_load_percent) >= 50.0:
 
 return round(price, 2)
 $$;
+
+-- 5. Функция на PL/Python: проверка существования места в салоне по вместимости самолёта
+CREATE OR REPLACE FUNCTION fn_py_validate_seat_PAG8(p_seat TEXT, p_capacity INT)
+RETURNS BOOLEAN
+LANGUAGE plpython3u
+AS $$
+import re, math
+if not p_seat:
+    return False
+seat = p_seat.strip().upper()
+m = re.match(r'^(\d{1,2})([A-F])$', seat)
+if not m:
+    return False
+
+row_num = int(m.group(1))
+letter = m.group(2)
+
+# Компоновка: для SSJ-100 (< 120 мест) — 5 кресел в ряду (A,C,D,E,F), иначе 6 кресел (A,B,C,D,E,F)
+letters = ['A', 'C', 'D', 'E', 'F'] if int(p_capacity) < 120 else ['A', 'B', 'C', 'D', 'E', 'F']
+if letter not in letters:
+    return False
+
+max_rows = math.ceil(int(p_capacity) / len(letters))
+if row_num < 1 or row_num > max_rows:
+    return False
+
+# Проверка общего порядкового номера места (для неполного последнего ряда)
+seat_index = (row_num - 1) * len(letters) + letters.index(letter) + 1
+return seat_index <= int(p_capacity)
+$$;
+
+-- 6. Табличная функция: список всех реально существующих СВОБОДНЫХ мест на рейсе
+CREATE OR REPLACE FUNCTION fn_get_available_seats_PAG8(p_flight_id INT)
+RETURNS TABLE (seat_number VARCHAR)
+LANGUAGE plpython3u
+AS $$
+import math
+res = plpy.execute(f"""
+    SELECT a.aircraft_capacity_PAG8 AS cap
+    FROM flight_PAG8 f
+    JOIN aircraft_PAG8 a ON a.aircraft_reg_number_PAG8 = f.aircraft_reg_number_PAG8
+    WHERE f.flight_id_PAG8 = {int(p_flight_id)}
+""")
+if not res:
+    return []
+
+cap = int(res[0]['cap'])
+occupied_res = plpy.execute(f"""
+    SELECT seat_number_PAG8 AS seat
+    FROM ticket_PAG8
+    WHERE flight_id_PAG8 = {int(p_flight_id)} AND ticket_status_PAG8 = 'Оплачен'
+""")
+occupied = {r['seat'].upper() for r in occupied_res}
+
+letters = ['A', 'C', 'D', 'E', 'F'] if cap < 120 else ['A', 'B', 'C', 'D', 'E', 'F']
+seats = []
+count = 0
+row = 1
+while count < cap:
+    for l in letters:
+        if count >= cap:
+            break
+        s = f"{row}{l}"
+        if s not in occupied:
+            seats.append(s)
+        count += 1
+    row += 1
+return seats
+$$;
+

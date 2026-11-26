@@ -12,9 +12,26 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
     base_price: '15000',
   });
 
+  const [availableSeats, setAvailableSeats] = useState<string[]>([]);
+
+  const loadSeats = async (fid: string) => {
+    if (!fid) {
+      setAvailableSeats([]);
+      return;
+    }
+    try {
+      const res = await axios.get(API + '/flights/' + fid + '/seats');
+      setAvailableSeats(res.data);
+      setTicketForm((prev) => ({ ...prev, seat_number: res.data[0] || '' }));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     if (selectedFlightId) {
       setTicketForm((prev) => ({ ...prev, flight_id: String(selectedFlightId) }));
+      loadSeats(String(selectedFlightId));
     }
   }, [selectedFlightId]);
 
@@ -45,7 +62,8 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
         },
         authHeaders
       );
-      alert('Билет успешно оформлен!');
+      alert('Билет успешно оформлен на место ' + ticketForm.seat_number + '!');
+      loadSeats(ticketForm.flight_id);
       onRefresh();
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Ошибка оформления');
@@ -89,24 +107,34 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
             className="w-full border p-2 rounded"
             required
             value={ticketForm.flight_id}
-            onChange={(e) => setTicketForm({ ...ticketForm, flight_id: e.target.value })}
+            onChange={(e) => {
+              const fid = e.target.value;
+              setTicketForm({ ...ticketForm, flight_id: fid });
+              loadSeats(fid);
+            }}
           >
-            <option value="">-- Выберите рейс (только открытая регистрация) --</option>
+            <option value="">-- Выберите рейс (открыта регистрация) --</option>
             {availableFlights.map((f: any) => (
               <option key={f.flight_id} value={f.flight_id}>
-                {f.flight_number}: {f.origin} - {f.destination} (Свободно: {f.free_seats})
+                {f.flight_number}: {f.origin} - {f.destination} ({f.aircraft_model}, свободно: {f.free_seats})
               </option>
             ))}
           </select>
 
           <div className="grid grid-cols-3 gap-2">
-            <input
+            <select
               className="border p-2 rounded"
               required
-              placeholder="Место (14A)"
+              disabled={!ticketForm.flight_id}
               value={ticketForm.seat_number}
               onChange={(e) => setTicketForm({ ...ticketForm, seat_number: e.target.value })}
-            />
+            >
+              <option value="">-- Место --</option>
+              {availableSeats.map((s) => (
+                <option key={s} value={s}>Место {s}</option>
+              ))}
+            </select>
+
             <select
               className="border p-2 rounded"
               value={ticketForm.ticket_class}
@@ -116,6 +144,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
               <option value="Бизнес">Бизнес (x1.8)</option>
               <option value="Первый">Первый (x2.5)</option>
             </select>
+
             <input
               className="border p-2 rounded"
               type="number"
@@ -174,6 +203,7 @@ export function TicketTab({ role, flights, tickets, passengers, selectedFlightId
                 <button
                   onClick={async () => {
                     await axios.patch(API + '/tickets/' + t.ticket_id + '/cancel', {}, authHeaders);
+                    loadSeats(ticketForm.flight_id);
                     onRefresh();
                   }}
                   className="text-red-600 hover:underline text-xs"
