@@ -26,7 +26,7 @@ AS $$
         f.flight_number_PAG8,
         f.flight_origin_PAG8 || ' -> ' || f.flight_destination_PAG8,
         COUNT(t.ticket_id_PAG8) FILTER (WHERE t.ticket_status_PAG8 = 'Оплачен'),
-        fn_get_flight_revenue_PAG8(f.flight_id_PAG8),
+        fn_get_flight_revenue_PAG8(f.flight_id_PAG8) AS total_revenue,
         ROUND(
             (COUNT(t.ticket_id_PAG8) FILTER (WHERE t.ticket_status_PAG8 = 'Оплачен')::numeric / a.aircraft_capacity_PAG8) * 100,
             2
@@ -46,7 +46,6 @@ AS $$
 import re
 if not p_passport:
     return False
-# Формат РФ: 4 цифры, пробел, 6 цифр (например, 4501 234567)
 return bool(re.match(r'^\d{4}\s\d{6}$', p_passport.strip()))
 $$;
 
@@ -65,7 +64,6 @@ if p_ticket_class == 'Бизнес':
 elif p_ticket_class == 'Первый':
     price *= 2.5
 
-# Повышающий коэффициент при высокой заполняемости салона
 if float(p_load_percent) >= 80.0:
     price *= 1.25
 elif float(p_load_percent) >= 50.0:
@@ -73,4 +71,3 @@ elif float(p_load_percent) >= 50.0:
 
 return round(price, 2)
 $$;
-
