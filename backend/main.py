@@ -24,6 +24,7 @@ def init_users():
             users = [
                 models.AppUser(username="admin", password_hash=hash_pwd("admin123"), role="admin", full_name="Администратор Системы"),
                 models.AppUser(username="cashier", password_hash=hash_pwd("cashier123"), role="cashier", full_name="Сидоров А. В. (Кассир)"),
+                models.AppUser(username="dispatcher", password_hash=hash_pwd("disp123"), role="dispatcher", full_name="Кузнецова Е. Н. (Диспетчер)"),
                 models.AppUser(username="passenger", password_hash=hash_pwd("pass123"), role="passenger", full_name="Иванов Пётр Сергеевич", passenger_id=1),
             ]
             db.add_all(users)
@@ -118,7 +119,7 @@ def get_tickets(user=Depends(require_roles(["admin", "cashier", "passenger"])), 
         return cur.fetchall()
 
 @app.get("/references")
-def get_references(user=Depends(require_roles(["admin", "cashier"])), conn=Depends(get_dbapi_conn)):
+def get_references(user=Depends(require_roles(["admin", "cashier", "dispatcher"])), conn=Depends(get_dbapi_conn)):
     with conn.cursor() as cur:
         cur.execute("SELECT * FROM v_passengers_list_PAG8 ORDER BY surname")
         passengers = cur.fetchall()
@@ -134,7 +135,7 @@ def get_analytics(user=Depends(require_roles(["admin"])), conn=Depends(get_dbapi
         return {"analytics": analytics, "logs": cur.fetchall()}
 
 @app.post("/flights")
-def create_flight(data: schemas.FlightCreate, user=Depends(require_roles(["admin"])), conn=Depends(get_dbapi_conn)):
+def create_flight(data: schemas.FlightCreate, user=Depends(require_roles(["admin", "dispatcher"])), conn=Depends(get_dbapi_conn)):
     try:
         with conn.cursor() as cur:
             cur.execute("CALL sp_create_flight_PAG8(%s, %s, %s, %s, %s, %s, %s)", (data.flight_number, data.origin, data.destination, data.departure_time, data.arrival_time, data.aircraft_reg_number, data.base_price))
@@ -145,7 +146,7 @@ def create_flight(data: schemas.FlightCreate, user=Depends(require_roles(["admin
         raise HTTPException(status_code=400, detail=e.pgerror.split("\n")[0])
 
 @app.patch("/flights/{flight_id}/status")
-def update_flight_status(flight_id: int, data: schemas.FlightStatusUpdate, user=Depends(require_roles(["admin", "cashier"])), conn=Depends(get_dbapi_conn)):
+def update_flight_status(flight_id: int, data: schemas.FlightStatusUpdate, user=Depends(require_roles(["admin", "dispatcher"])), conn=Depends(get_dbapi_conn)):
     try:
         with conn.cursor() as cur:
             cur.execute("CALL sp_update_flight_status_PAG8(%s, %s)", (flight_id, data.status))
@@ -156,7 +157,7 @@ def update_flight_status(flight_id: int, data: schemas.FlightStatusUpdate, user=
         raise HTTPException(status_code=400, detail=e.pgerror.split("\n")[0])
 
 @app.delete("/flights/{flight_id}")
-def delete_flight(flight_id: int, user=Depends(require_roles(["admin"])), conn=Depends(get_dbapi_conn)):
+def delete_flight(flight_id: int, user=Depends(require_roles(["admin", "dispatcher"])), conn=Depends(get_dbapi_conn)):
     try:
         with conn.cursor() as cur:
             cur.execute("CALL sp_delete_flight_PAG8(%s)", (flight_id,))
@@ -209,7 +210,7 @@ def get_available_seats(flight_id: int, conn=Depends(get_dbapi_conn)):
         return cur.fetchall()
 
 @app.patch("/flights/{flight_id}/price")
-def update_flight_price(flight_id: int, data: schemas.FlightPriceUpdate, user=Depends(require_roles(["admin", "cashier"])), conn=Depends(get_dbapi_conn)):
+def update_flight_price(flight_id: int, data: schemas.FlightPriceUpdate, user=Depends(require_roles(["admin", "dispatcher"])), conn=Depends(get_dbapi_conn)):
     try:
         with conn.cursor() as cur:
             cur.execute("CALL sp_update_flight_price_PAG8(%s, %s)", (flight_id, data.base_price))

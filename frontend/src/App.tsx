@@ -26,7 +26,8 @@ export default function App() {
   });
   const [error, setError] = useState('');
 
-  const [tab, setTab] = useState<'schedule' | 'tickets' | 'admin' | 'analytics'>('schedule'); const [selectedFlightId, setSelectedFlightId] = useState<string>('');
+  const [tab, setTab] = useState<'schedule' | 'tickets' | 'admin' | 'analytics'>('schedule');
+  const [selectedFlightId, setSelectedFlightId] = useState<string>('');
   const [flights, setFlights] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [passengers, setPassengers] = useState<any[]>([]);
@@ -76,7 +77,8 @@ export default function App() {
     localStorage.clear();
     setToken(null);
     setRole(null);
-    setFullName(null); setSelectedFlightId('');
+    setFullName(null);
+    setSelectedFlightId('');
   };
 
   const loadAll = async () => {
@@ -91,10 +93,12 @@ export default function App() {
 
       if (!token) return;
 
-      const tRes = await axios.get(API + '/tickets', authHeaders);
-      setTickets(tRes.data);
+      if (role !== 'dispatcher') {
+        const tRes = await axios.get(API + '/tickets', authHeaders);
+        setTickets(tRes.data);
+      }
 
-      if (role === 'cashier' || role === 'admin') {
+      if (role === 'cashier' || role === 'admin' || role === 'dispatcher') {
         const refRes = await axios.get(API + '/references', authHeaders);
         setPassengers(refRes.data.passengers);
         setAircrafts(refRes.data.aircrafts);
@@ -156,7 +160,7 @@ export default function App() {
               </div>
               <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700">Войти</button>
               <div className="text-xs text-gray-400 border-t pt-2">
-                Демо-доступ: admin / admin123 | cashier / cashier123 | passenger / pass123
+                Демо: admin/admin123 | dispatcher/disp123 | cashier/cashier123 | passenger/pass123
               </div>
             </form>
           ) : (
@@ -194,18 +198,20 @@ export default function App() {
           <button onClick={() => setTab('schedule')} className={tab === 'schedule' ? 'px-3 py-1 rounded bg-white text-blue-700 font-semibold' : 'px-3 py-1 rounded bg-blue-600'}>
             Табло рейсов
           </button>
-          <button onClick={() => setTab('tickets')} className={tab === 'tickets' ? 'px-3 py-1 rounded bg-white text-blue-700 font-semibold' : 'px-3 py-1 rounded bg-blue-600'}>
-            {role === 'passenger' ? 'Мои билеты и покупка' : 'Касса и пассажиры'}
-          </button>
+          {role !== 'dispatcher' && (
+            <button onClick={() => setTab('tickets')} className={tab === 'tickets' ? 'px-3 py-1 rounded bg-white text-blue-700 font-semibold' : 'px-3 py-1 rounded bg-blue-600'}>
+              {role === 'passenger' ? 'Мои билеты и покупка' : 'Касса и пассажиры'}
+            </button>
+          )}
+          {(role === 'admin' || role === 'dispatcher') && (
+            <button onClick={() => setTab('admin')} className={tab === 'admin' ? 'px-3 py-1 rounded bg-white text-blue-700 font-semibold' : 'px-3 py-1 rounded bg-blue-600'}>
+              {role === 'admin' ? 'Управление и пользователи' : 'Управление рейсами'}
+            </button>
+          )}
           {role === 'admin' && (
-            <>
-              <button onClick={() => setTab('admin')} className={tab === 'admin' ? 'px-3 py-1 rounded bg-white text-blue-700 font-semibold' : 'px-3 py-1 rounded bg-blue-600'}>
-                Управление и пользователи
-              </button>
-              <button onClick={() => setTab('analytics')} className={tab === 'analytics' ? 'px-3 py-1 rounded bg-white text-blue-700 font-semibold' : 'px-3 py-1 rounded bg-blue-600'}>
-                Аналитика и аудит
-              </button>
-            </>
+            <button onClick={() => setTab('analytics')} className={tab === 'analytics' ? 'px-3 py-1 rounded bg-white text-blue-700 font-semibold' : 'px-3 py-1 rounded bg-blue-600'}>
+              Аналитика и аудит
+            </button>
           )}
           <button onClick={logout} className="ml-4 px-3 py-1 bg-red-500 rounded text-sm hover:bg-red-600">Выход</button>
         </div>
@@ -239,7 +245,7 @@ export default function App() {
                       <p>Вылет: {new Date(f.departure_time).toLocaleString('ru-RU')}</p>
                       <p>Прилёт: {new Date(f.arrival_time).toLocaleString('ru-RU')}</p>
                       <p>Борт: {f.aircraft_model} ({f.aircraft_reg_number})</p>
-                      <p className="font-semibold text-green-700">Свободных мест: {f.free_seats} из {f.capacity} | Базовый тариф: {f.base_price} руб.</p>
+                      <p className="font-semibold text-green-700">Свободных мест: {f.free_seats} из {f.capacity} | База: {f.base_price} руб.</p>
                     </div>
                   </div>
                   {role === 'passenger' && f.status === 'Регистрация' && (
@@ -254,11 +260,11 @@ export default function App() {
         )}
 
         {tab === 'tickets' && (
-          <TicketTab role={role} selectedFlightId={selectedFlightId} flights={flights} tickets={tickets} passengers={passengers} authHeaders={authHeaders} onRefresh={loadAll} />
+          <TicketTab role={role} flights={flights} tickets={tickets} passengers={passengers} selectedFlightId={selectedFlightId} authHeaders={authHeaders} onRefresh={loadAll} />
         )}
 
         {tab === 'admin' && (
-          <AdminTab flights={flights} aircrafts={aircrafts} users={users} passengers={passengers} authHeaders={authHeaders} onRefresh={loadAll} />
+          <AdminTab role={role} flights={flights} aircrafts={aircrafts} users={users} passengers={passengers} authHeaders={authHeaders} onRefresh={loadAll} />
         )}
 
         {tab === 'analytics' && <AnalyticsTab analytics={analytics} logs={logs} />}
@@ -266,3 +272,4 @@ export default function App() {
     </div>
   );
 }
+

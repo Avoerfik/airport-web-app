@@ -84,3 +84,12 @@ END $$;
 GRANT SELECT ON v_public_schedule_PAG8 TO role_passenger_pag8;
 GRANT SELECT ON v_public_schedule_PAG8, v_tickets_registry_PAG8, v_passengers_list_PAG8, v_aircrafts_list_PAG8 TO role_cashier_pag8;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'role_dispatcher_pag8') THEN
+        CREATE ROLE role_dispatcher_pag8 NOLOGIN;
+    END IF;
+END $$;
+
+GRANT SELECT ON v_public_schedule_PAG8, v_aircrafts_list_PAG8 TO role_dispatcher_pag8;
+
