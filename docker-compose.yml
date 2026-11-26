@@ -4,10 +4,11 @@ services:
       context: ./db
       dockerfile: Dockerfile
     container_name: airport_db_pag8
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-airport_pag8}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - ./db:/docker-entrypoint-initdb.d
-
