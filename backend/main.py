@@ -218,5 +218,5 @@ def update_flight_price(flight_id: int, data: schemas.FlightPriceUpdate, user=De
         return {"status": "ok"}
     except psycopg2.Error as e:
         conn.rollback()
-        raise HTTPException(status_code=400, detail=e.pgerror.split("\n"))
+        raise HTTPException(status_code=400, detail=e.pgerror.split("\n")[0])
 
