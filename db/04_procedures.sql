@@ -109,9 +109,15 @@ BEGIN
 
     v_final_price := fn_py_calc_dynamic_price_PAG8(v_base_price, v_actual_class, v_load_pct);
 
-    INSERT INTO booking_PAG8 (passenger_id_PAG8)
-    VALUES (p_passenger_id)
-    RETURNING booking_id_PAG8 INTO v_booking_id;
+    SELECT booking_id_PAG8 INTO v_booking_id
+    FROM booking_PAG8
+    WHERE passenger_id_PAG8 = p_passenger_id;
+
+    IF v_booking_id IS NULL THEN
+        INSERT INTO booking_PAG8 (passenger_id_PAG8)
+        VALUES (p_passenger_id)
+        RETURNING booking_id_PAG8 INTO v_booking_id;
+    END IF;
 
     v_ticket_num := 'TKT-' || LPAD(nextval('ticket_pag8_ticket_id_pag8_seq')::text, 5, '0');
 

@@ -51,7 +51,7 @@ CREATE TABLE flight_PAG8 (
 -- 5. Бронирования
 CREATE TABLE booking_PAG8 (
     booking_id_PAG8   SERIAL PRIMARY KEY,
-    passenger_id_PAG8 INT  NOT NULL REFERENCES passenger_PAG8(passenger_id_PAG8) ON DELETE RESTRICT ON UPDATE CASCADE,
+    passenger_id_PAG8 INT  NOT NULL UNIQUE REFERENCES passenger_PAG8(passenger_id_PAG8) ON DELETE RESTRICT ON UPDATE CASCADE,
     booking_date_PAG8 DATE NOT NULL DEFAULT CURRENT_DATE
 );
 
